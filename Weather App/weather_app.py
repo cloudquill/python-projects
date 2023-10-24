@@ -1,6 +1,6 @@
 import requests
 from requests.exceptions import RequestException
-from config import API_KEY
+from configuration import API_KEY
 from tabulate import tabulate
 
 # This function makes an API call to WeatherBit
