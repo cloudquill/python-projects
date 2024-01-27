@@ -1,6 +1,7 @@
 import re
 import getpass
-from config import location, subscription_id
+
+from config import location, subscription_id, max_name_limit, min_name_limit
 
 
 def validate_group_name(group_name):
@@ -16,8 +17,9 @@ def validate_group_name(group_name):
         if not re.match(r'^[\w_()\-.]+$', group_name):
             print("Invalid deployment name. Group name can only contain include \
                   alphanumeric, underscore, parentheses, hyphen, period (except at end).")
-        elif not len(group_name) <= 90:
-            print("Invalid group name. Group name cannot be more than 90 characters.")
+        elif not (min_name_limit <= len(group_name) <= max_name_limit):
+            print(f"A valid group name must be {min_name_limit}-{max_name_limit}\
+                 character long.")
         else:
             return group_name
         
@@ -43,8 +45,9 @@ def get_vnet_or_subnet_name(isVNet):
             print(f"Invalid {rss_type} name. Name must begin with a letter or number,\
                   end with a letter, number, or underscore, and may contain only letters, \
                   numbers, underscores, periods, or hyphens.")
-        elif not len(name) <= 90:
-            print(f"Invalid {rss_type} name. Name cannot be more than 90 characters.")
+        elif not (min_name_limit <= len(name) <= max_name_limit):
+            print(f"A valid {rss_type} name must be {min_name_limit}-{max_name_limit}\
+                 character long.")
         else:
             return name
 
@@ -62,8 +65,9 @@ def get_nsg_name():
             print("Invalid NSG name. Name must begin with a letter or number, end \
                   with a letter, number, or underscore, and may contain only letters, \
                   numbers, underscores, periods, or hyphens.")
-        elif not 2 <= len(nsg_name) <= 64:
-            print("Invalid NSG name. Name must be between 2 and 64 characters.")
+        elif not (min_name_limit <= len(nsg_name) <= max_name_limit):
+            print(f"A valid nsg name must be {min_name_limit}-{max_name_limit}\
+                 character long.")
         else:
             return nsg_name
 
@@ -85,8 +89,9 @@ def get_server_name(isWebServer):
         if not re.match(r"^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$", vm_name):
             print(f"Invalid {vm_type} name. Name cannot contain whitespace or special \
                   characters except '-' but cannot begin or end with '-'")
-        elif not 1 <= len(vm_name) <= 64:
-            print(f"Invalid {vm_type} name. Name must be between 1 and 64 characters.")
+        elif not (min_name_limit <= len(vm_name) <= max_name_limit):
+            print(f"A valid {vm_type} name must be {min_name_limit}-{max_name_limit}\
+                  character long.")
         else:
             return vm_name
 
@@ -106,8 +111,8 @@ def get_username(isWebServer):
     while True:
         username = input(f"Enter a username for the {server_type}: ")
 
-        if not 9 < len(username) < 64:
-            print("Username must be between 9 and 64 characters.")
+        if not (4 < len(username) < 64):
+            print("Username must be between 4 and 64 characters.")
         elif not re.match(r"^[\w][\w-]+$", username):
             # \w is a shorthand character that represents alphanumeric characters and 
             # underscore
@@ -142,28 +147,19 @@ def get_password(isWebServer):
         matches_passed = sum(bool(re.search(pattern, password)) for pattern in 
                              password_requirements)
 
-        if not 12 < len(password) < 63:
-            print("Password must bebetween 12 and 63 characters long.")
+        if not (12 < len(password) < 72):
+            print("Password must bebetween 12 and 72 characters long.")
         elif not matches_passed >= 3:
             print("Password must contain at least three of the following:\n1) One Uppercase\
                   \n2) One Lowercase\n3) One Number\n4) One Special character")
         else:
-            return password
+            confirm_password = getpass.getpass("Confirm password: ")
 
-
-def create_publicip_params():
-    """Forms a Public IP parameter argument
-
-    Returns:
-        dictionary: Public IP resource properties
-    """
-    return {
-        'sku': {
-            'name': 'Standard'
-        },
-        'location': location,
-        'public_ip_allocation_method': 'Static'
-    }
+            if password == confirm_password:
+                print("Passwords matched.")
+                return password
+            else:
+                print("Passwords do not match. Please try again.")
 
 
 def create_nic_params(group_name, vnet_name, subnet_name, publicip_name=''):
@@ -256,22 +252,4 @@ def create_server_params(group_name, server_name, interface_name, isWebServer):
                 "primary": True
             }]
         }
-    }
-
-
-def run_command_params():
-    """Install the IIS feature in a Windows webserver
-
-    Returns:
-        dictionary: PowerShell script to be run on webserver
-    """
-    # The script installs IIS, removes the default homepage, recreates it 
-    # again but with new content (Value).
-    return {
-        'commandId': 'RunPowerShellScript',
-        'script': [
-            "Install-WindowsFeature -name Web-Server -IncludeManagementTools",
-            "Remove-item 'C:\\inetpub\\wwwroot\\iisstart.htm'", 
-            "Add-Content -Path 'C:\\inetpub\\wwwroot\\iisstart.htm' -Value $('Hello World from ' + $env:computername)"
-        ]
     }
