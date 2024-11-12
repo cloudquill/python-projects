@@ -1,0 +1,4 @@
+azure-functions==1.21.3
+cohere==5.11.3
+azure-cosmos==4.7.0
+python-dotenv==1.0.1
