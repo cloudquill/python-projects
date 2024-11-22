@@ -65,29 +65,57 @@ This serverless function provides a simple API for accessing movie information s
    - `ACCOUNT_KEY`
    - `COHERE_API_KEY`  
 
-   **Note**: This applies only to local testing. When deploying to Azure, comment out `dotenv import` and `load_dotenv()` in the `config.py` file. The environment variables can then be set in the app settings in the function app.
+   **Note**: This applies only to local testing. Azure handles environment variables differently, so dotenv is unnecessary and causes errors in the Azure environment. Before deploying to Azure, comment out the dotenv import and load_dotenv() call in the config file, and remove python-dotenv from `requirements.txt`.
 
-4. **Deploy the Function to Azure**:
-   It is much easier to deploy to Azure with VS Code:
-   ![Steps to deploying function to Azure](/Serverless%20Movies%20API/images/serverless%20movies%20pic.jpg?raw=true "Deploy Function to Azure Steps")
+4. **Deploying Your Azure Function with Secrets**:
+   Before deploying your Azure Function, copy the secrets from your `.env` file to `local.settings.json`. This ensures the Function App has all required settings to run; otherwise, you might encounter the "No HTTP triggers found" error.
+
+   ![No HTTP triggers error](/Serverless%20Movies%20API/images/no_http_triggers_error.jpg?raw=true "No HTTP triggers found")
+
+   Example `local.settings.json`: 
+   ```JSON
+   {
+      "IsEncrypted": false,
+      "Values": {
+         "FUNCTIONS_WORKER_RUNTIME": "python",
+         "AzureWebJobsFeatureFlags": "EnableWorkerIndexing",
+         "ACCOUNT_URI": "xxxxxxxxxxxxxxxxxxx",
+         "ACCOUNT_KEY": "xxxxxxxxxxxxxxxxxxxx",
+         "COHERE_API_KEY": "xxxxxxxxxxxxxxxxxx"
+
+      }
+   }
+   ```
+
+   ![Deploying to Azure](/Serverless%20Movies%20API/images/serverless%20movies%20pic.jpg?raw=true "Steps to deploying function to Azure")
+
+Now it is much easier to deploy to Azure with VS Code:
    - Install the Azure Function extension.
    - Click the Azure Function icon in the sidebar.
-   - Click the little Azure Function icon that appears when you hover over the "WORKSPACE" header tab.
-   - From the dropdown, click Deploy To Azure and follow the prompts.
+   - Hover over the **WORKSPACE** header and click the little Azure Function icon that appears.
+   - Select "Deploy to Azure" from the dropdown and follow the prompts.
+   - After deployment, a notification will appear in the bottom-right corner of VS Code. Click **"Upload settings"** to transfer the secrets from `local.settings.json` to your Azure Function.
 
-## Usage
-![Open the Output window](/Serverless%20Movies%20API/images/open_output_window.jpg?raw=true "Output window")
+   ![Upload settings](/Serverless%20Movies%20API/images/upload_settings.jpg?raw=true "Upload settings notification")
 
-After deployment, start interacting with the API by opening the Output tab using Ctrl+Shift+U or Ctrl+` and navigating to the Output tab.
+   - Restart your Function App by pressing the F1 key to open the command pallete in VS Code. Type and click on "Azure Functions: Restart". Then choose the Function to restart. 
+   - Once restarted, open the Function App in the Azure Portal. You should see your three trigger functions listed in the **Overview** window.
 
-The presence of Tigger URLs indicates that your function has been deployed successfully and is ready to use. 
+## Troubleshooting Common Issues
+If your function still doesn't work after deployment, try these solutions:
 
-## Issues
-If you see a "No HTTP triggers found" message after deploying to Azure, try the following steps:
-- Run the function locally to verify it works.
-- Comment out the dotenv import and load_dotenv() in the config file and consider removing it from the requirements file before redeploying.
-- Switch to the Flex Consumption Plan or higher.
-- Ensure that the function names in `function_app.py` match those in the `host.json` file.
+1. **Run the Function Locally**:  
+Test the function locally to ensure it works as expected before deploying.
+
+2. **Remove dotenv for Deployment**:
+- Comment out the dotenv import and the load_dotenv() call in your config file.
+- Remove python-dotenv from the requirements.txt file.
+- Redeploy the function.
+
+3. **Verify Secrets on Azure**:
+- Go to your Function App in the Azure Portal.
+- In the sidebar, expand the Settings tab and click Environment Variables.
+- Ensure all required secrets (ACCOUNT_URI, ACCOUNT_KEY and COHERE_API_KEY) are correctly uploaded.
 
 ## Contributing
 

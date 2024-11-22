@@ -2,75 +2,125 @@ import json
 
 from config import container, co
 
-def convertToArray(result):
-    arr = []
+def convert_to_list(query_result):
+    """Converts query result to a list
 
-    for item in result:
-        arr.append(item)
+    Args:
+        query_result (itemPaged): Query result from DB
+
+    Returns:
+        list: List of items from the query result
+    """
+    return [item for item in query_result]
+
+def query_db(query, parameters=[]):
+    """Queries the database for items
+
+    Args:
+        query (str): The query string
+        parameters (list, optional): A list of parameters for the query
     
-    return arr
-
-def queryDB(query):
-    result = container.query_items(
-        query,
-        enable_cross_partition_query=True
-    )
-
-    return result
-
-def getMovies():
-    query = "SELECT c.title Title, c.year Year, c.genres Genres FROM c"
-    result = queryDB(query)
+    Returns:
+        list: a list of items returned by the query
+    """
+    try:
+        query_result = container.query_items(
+            query,
+            parameters,
+            enable_cross_partition_query=True
+        )
     
-    array_version_of_result = convertToArray(result)
+        return convert_to_list(query_result)
+    except Exception:
+        return display_result("An error occurred while querying the database."
+                              " Please try again later.")
 
-    return displayResult(array_version_of_result)
+def fetch_movies():
+    """Retrieves all movie information from the DB
 
-def getMoviesByYear(year):
-    query = (f"SELECT c.title Title, c.year Year, c.genres Genres FROM c "
-             f"WHERE c.year = '{year}'")
-    result = queryDB(query)
+    Returns:
+        str: A JSON-formatted string of all movies
+    """
+    query = 'SELECT c.title Title, c.year Year, c.genres Genres FROM c'
+    query_result = query_db(query)
+
+    return display_result(query_result)
+
+def fetch_movies_by_year(year):
+    """Retrieves movies released in a given year
     
-    array_version_of_result = convertToArray(result)
+    Args:
+        year (int): Year movie was released
+    
+    Returns:
+        str: A JSON-formatted string of movies released a specific year
+    """
+    query = ('SELECT c.title Title, c.year Year, c.genres Genres FROM c'
+             ' WHERE c.year = @year')
+    parameters = [{'name': '@year', 'value': year}]
+    query_result = query_db(query, parameters)
 
-    return displayResult(array_version_of_result)
+    return display_result(query_result)
 
-def getMovieSummary(movie_name):
-    query = (f"SELECT c.title, c.year, c.genres FROM c "
-             f"WHERE LOWER(c.title) = LOWER('{movie_name}')")
-    result = queryDB(query)
+def fetch_movie_summary(movie_name):
+    """Retrieves a specific movie's information along with a summary.
+    
+    Args:
+        movie_name (str): Name of the movie
 
-    array_version_of_result = convertToArray(result)
+    Returns:
+        str: A JSON-formatted string of a specific movie with its summary
+    """
+    query = ('SELECT c.title, c.year, c.genres FROM c'
+             ' WHERE LOWER(c.title) = LOWER(@movie_name)')
+    parameters = [{'name': '@movie_name', 'value': movie_name}]
+    query_result = query_db(query, parameters)
 
-    if not array_version_of_result:
-        return displayResult("Movie not in database.")
-    else:
-        year = array_version_of_result[0]['year']
-        instruction = (f"Write a plot summary for the movie {movie_name} "
-                       f"released in {year}")
-        
-        system_message = "You respond concisely, in 2-3 sentences"
+    ai_summary = ''
 
-        response = co.chat(
-            model="command-r-plus-08-2024",
+    if not query_result:
+        return display_result("Movie not in database.")
+    
+    year = query_result[0]['year']
+    instruction = (f'Write a plot summary for the movie {movie_name}'
+                   f' released in {year}')
+
+    try:
+        # Instructs Cohere AI on how to respond
+        system_message = 'You respond concisely, in 2-3 sentences'
+
+        ai_summary = co.chat(
+            model='command-r-plus-08-2024',
             messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": instruction}
+                {'role': 'system', 'content': system_message},
+                {'role': 'user', 'content': instruction}
             ]
         )
+    except:
+        return display_result("An error occurred while generating a summary for"
+                             f" {movie_name}. Please try again later.")
+    
+    return display_result(query_result, ai_summary)
 
-        return displayResult(array_version_of_result, response)
 
+def display_result(result, ai_summary=''):
+    """Formats results in JSON
+    
+    Args:
+        result (list): Data returned from DB or error message
+        ai_summary (str, optional): Movie summary
 
-def displayResult(result, summary=''):
-    if not summary:
-        return json.dumps(result, indent=4)
-    else:
-        details = {
+    Returns:
+        str: A JSON-formatted string of results
+    """
+    if ai_summary:
+        content_to_display = {
             "Title": result[0]['title'],
             "Year": result[0]['year'],
-            "Genres": ', '.join(result[0]['genres']),
-            "Summary":summary.message.content[0].text
+            "Genres": ", ".join(result[0]['genres']),
+            "Summary": ai_summary.message.content[0].text
         }
+    else:
+        content_to_display = result
 
-        return json.dumps(details, indent=4)
+    return json.dumps(content_to_display, indent=4)

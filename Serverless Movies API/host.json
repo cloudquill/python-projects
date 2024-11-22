@@ -1,6 +1,5 @@
 {
   "version": "2.0",
-  "functions": ["getMovies", "getMoviesByYear", "getMovieSummary"],
   "logging": {
     "applicationInsights": {
       "samplingSettings": {
