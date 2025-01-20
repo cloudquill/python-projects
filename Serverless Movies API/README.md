@@ -2,7 +2,10 @@
 
 ## Overview
 
-This serverless function provides a simple API for accessing movie information stored in a database. It includes several endpoints to retrieve a list of movies, filter movies by release year, and generate summaries for specific movies using AI.
+This serverless function provides a simple API for accessing movie 
+information stored in a database. It includes several endpoints to retrieve a list of movies, filter movies by release year, and generate summaries for specific movies using AI.
+
+The deployment of this function can also be managed using a Terraform file, ensuring a seamless and reproducible infrastructure setup.
 
 ## Features
 
